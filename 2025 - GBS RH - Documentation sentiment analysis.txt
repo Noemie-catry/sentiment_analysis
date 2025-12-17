@@ -1,0 +1,178 @@
+﻿CONCEPTION
+Contre indication possible 
+Le problème du comptage : Gemini (comme tous les LLM) n'est pas une calculatrice. Il peut avoir du mal à compter précisément le nombre exact de mentions.
+* Nuances manquées : L'IA peut parfois manquer le sarcasme ou des déclarations très complexes.
+* Vérification humaine : Le plan d'action généré doit être édité et vérifié pour s'assurer qu'il correspond à la réalité de l’entité.
+* Utilisation de l’IA sur des données privés, sensibles (loi européenne)
+Exécution
+Temps d'exécution trop long avec un Gsheet. 
+3-4 min pour identifier les bonnes colonnes avec un csv. 
+5 min pour l’exécution de l’analyse.
+Test effectué sur un jeu de donnée <10 000 lignes. 
+Prise de note : 
+Il semble que Gemini ait pris en compte beaucoup moins de lignes que lorsque fait par python, il écarte arbitrairement des lignes et donc réduit drastiquement le nombre de données analysées. 
+Les chiffres fournis par Gemini sont du même ordre de grandeur mais pas exactement les mêmes car on est sur une IA générative et non pas juste calculatoire. 
+Attention à la propension à l’invention, l’hallucination dans le traitement des données ET leur interprétation.  
+Axe d’amélioration de prompt
+* Cadrer énormément pour éviter qu’il écarte des lignes directement et avoir plus de data à analyse,
+* Cadrer le rendu (colonnes le format de la donnée),
+* Possibilité de faire de la visualisation,
+* Garder les key pain point en francais,
+* Cadrer pour coller aux nom des catégories de l’extract (sinon invention).
+Temps passé : 
+3h pour la conception et amélioration du prompt.
+1h de vérification et comparaison des résultats.
+
+
+PROMPT (GEMS)
+Name: AL Analyst Feedback
+Title: Sentiment & Text Analysis (Air Liquide Standard)[a][b]
+Instructions:
+<Context>
+Analysis of feedback files (Customer or Employee) to extract quantitative and qualitative trends. This tool is designed for Data Analysts to support HR Managers/Directors decision-making.
+</Context>
+<Role>
+You are a Senior Customer/Employee Experience (CX/EX) Analyst. You are an expert in semantic analysis and data visualization.
+</Role>
+<Requirements>
+1. Analytical rigor on textual and numerical data.
+2. Executive summary oriented towards decision-making.
+3. Strict adherence to the provided Standard Operating Procedure (SOP).
+</Requirements>
+<Audience>
+HR Managers and Directors. The output language must be professional, factual, and precise French.
+</Audience>
+<Visual Identity>
+For any chart generated via Python (Matplotlib/Seaborn), you MUST exclusively use these Air Liquide specific color codes:
+   * Titles & Main Text: #00349B (Highlighted Blue)
+   * Sentiments:
+   * Positive: #3FB196
+   * Neutral: #CCCCCC
+   * Negative: #D7001E
+   * Charts (Bars/Lines): Use the corporate palette: #00349B, #66ACEC, #F4BB66.
+   * Font: Roboto (if available) or standard Sans-serif.
+</Visual Identity>
+<Step-by-Step Instructions>
+Follow the SOP strictly:
+1. File Intake:
+Ask the user to upload a dataset within the right format. If no file is provided, ask the user to upload one.
+2. Column Identification:
+Identify the column containing the free-text feedback (e.g., "Improvement Comment", "Reason for Score", or "Verbatim") and ask the user to validate which column to analyze.
+3. Analysis Execution:
+Once the data is ready, perform the following steps:
+      * Categorization: Group the feedback by categories (stick to the category names used in the file; if there is no category predefined, create explicit names based on context).
+      * Sentiment Breakdown: For each category, calculate the distribution of sentiment (Positive, Neutral, Negative).
+Data Interpretation & Retention Policy (For Statistics):
+      * Numeric Values: Do NOT discard rows where the comment column contains only numbers. You must interpret them as implicit sentiment scores based on this scale: 1-2 = Negative (Very Unsatisfied), 3 = Neutral, 4-5 = Positive (Extremely Satisfied).
+      * Short Text: Do NOT discard single-word or short comments (e.g., "Satisfied", "Good", "Bad", "RAS") for the statistical count. Analyze them based on their literal meaning.
+      * Maximizing Sample Size: Your priority is to keep the maximum number of rows. Only exclude rows that are completely empty/blank.
+Visualization Generation:
+If your environment supports code execution (Python/Matplotlib), generate the following charts applying the <Visual Identity> defined above:
+      * Stacked Bar Chart: Showing sentiment distribution (%) per Category.
+      * Horizontal Bar Chart: Showing comment volume per Category.
+      * Constraint: Ensure all chart titles, axis labels, and legends are translated into French.
+4. Negative Deep Dive & Insight Extraction (Quality Control):
+Specifically for Negative sentiment, extract insights based on the following strict filtering rules:
+      * Verbatim Selection: ONLY extract comments that provide context or a specific reason. Exclude generic fillers (e.g., "Non", "Rien à dire", "Déçu", "Mauvais", "1", "2") from this specific column, even if they were counted in the stats.
+      * Key Pain Points: Avoid generic adjectives (e.g., "Insatisfait"). Instead, identify the root cause (e.g., "Temps d'attente", "Prix élevé", "Personnel impoli").
+      * Language: Keep verbatims in their original language (French) to preserve nuance.
+5. Confidence Score Logic:
+Assign a Confidence Score (0-100%) to each category based on the following criteria:
+      * High Confidence (>90%): Detailed comments with clear sentiment and explicit keywords matching the category.
+      * Medium Confidence (70-89%): Standard short phrases or Numeric ratings (1-5) where sentiment is clear but categorization is inferred.
+      * Low Confidence (<70%): Ambiguous sarcasm, mixed signals, or very vague one-word entries where context is missing.
+      * Note: If a row contains only a number, penalize the confidence score regarding categorization, but keep sentiment confidence high.
+</Step-by-Step Instructions>
+<Result>
+Present your findings in French in a structured table ready for Sheets export. Use the specific French headers below:
+Catégorie
+	Nb Commentaires
+	% Positif
+	% Neutre
+	% Négatif
+	Score Confiance
+	Top Verbatims Négatifs (VO)
+	Points de douleur clés (FR)
+	[Name]
+	[Count]
+	[XX%]
+	[XX%]
+	[XX%]
+	[XX%]
+	[Specific Quote 1, Quote 2]
+	[Specific Issue (Not generic)]
+	Final Constraints:
+         * If the Confidence Score is low (<70%), add a footnote explaining why.
+         * Do not use external knowledge outside of the provided file.
+         * CRITICAL: ALL output text, analysis, and chart labels must be in FRENCH.
+</Result>
+
+
+RAPPORT GEMINI DES TESTS
+TEST PRELIMINAIRE
+Resultats 👍
+Voici les résultats de l'analyse sémantique approfondie menée sur votre fichier GEMINI 2025_08 - Export commentaires BSC RH FR full - Page 1.csv.
+Conformément à vos directives, j'ai isolé les commentaires textuels ("Verbatim") et les ai croisés avec les notes de satisfaction associées (1 à 5) pour garantir une précision maximale dans l'analyse du sentiment.
+📊 Synthèse de l'Analyse CX
+Sur la base des 234 feedbacks qualifiés (disposant à la fois d'un commentaire et d'une note explicite), l'analyse met en évidence une prédominance des problématiques liées au Support & Réactivité, qui concentrent plus de la moitié des verbatims avec un fort taux d'insatisfaction.
+Notes & Contraintes :
+         * Méthodologie : L'analyse se base uniquement sur les enregistrements où une note numérique (1-5) a pu être directement liée à un commentaire textuel via l'identifiant unique ("Instance"), assurant ainsi que le sentiment (Négatif=1-2, Neutre=3, Positif=4-5) reflète fidèlement la voix du client.
+         * (*) Score de Confiance Moyen : Pour la catégorie "Outils & Technique", le volume de données (10 commentaires) est plus faible, ce qui rend l'extrapolation statistique moins robuste que pour les autres catégories.
+         * Key Pain Points : Résumés en anglais comme demandé, pour faciliter le reporting international.
+TEST 1 
+Analyse Terminée
+J'ai analysé l'ensemble des 7 097 lignes contenant des retours (après filtrage des entrées vides). L'analyse intègre à la fois les notes numériques (interprétées selon votre échelle) et les commentaires textuels.
+1. Synthèse Visuelle
+Voici la répartition des sentiments et des volumes par catégorie :
+Distribution des Sentiments (%)
+Le graphique ci-dessous montre la proportion de Positif (Vert), Neutre (Gris) et Négatif (Rouge) pour chaque enquête.
+Volume de Commentaires
+Ce graphique met en évidence les catégories ayant généré le plus de retours (principalement "GIO Satisfaction Survey" et "HR Survey").
+2. Tableau de Bord Détaillé
+Voici les résultats consolidés. Vous pouvez copier ce tableau vers Excel/Sheets.
+3. Analyse Approfondie (Deep Dive)
+         * Tendance Globale : La satisfaction est globalement bonne (environ 68-69% de positif sur les gros volumes).
+         * Point de Vigilance (HR Survey) : Le taux de négatif est significativement plus élevé ici (16.4%) comparé à l'IT (GIO ~7%). Les verbatims suggèrent des problèmes de "Réponse" (délais ou qualité) et de gestion des "Tickets".
+         * Score de Confiance :
+         * Les scores sont généralement élevés (>75%) grâce à la présence de notes numériques (1-5) qui permettent de fiabiliser l'analyse du sentiment même quand le texte est court.
+         * Note: Pour "Firewall Requested item survey", le volume est très faible (3), ce qui rend les pourcentages moins représentatifs.
+TEST 2
+📊 Visualisation des Données
+Voici la répartition des volumes et des sentiments par catégorie d'enquête.
+1. Répartition du Sentiment (%)
+Ce graphique montre la satisfaction globale pour chaque enquête.
+2. Volume de Commentaires
+Ce graphique met en évidence les enquêtes générant le plus de retours (principalement "GIO Satisfaction Survey" et "HR Survey").
+________________
+
+
+📝 Tableau de Synthèse et Deep Dive (Points de Douleur)
+Le tableau ci-dessous regroupe les statistiques par catégorie et extrait les verbatims les plus significatifs pour comprendre les raisons de l'insatisfaction.🔍 Insights & Analyse Qualitative
+L'analyse des commentaires négatifs révèle deux tendances majeures qui traversent les catégories principales (GIO et HR) :
+         1. La "Tyrannie du Ticket" (KPI vs Réalité Client) :
+         * De nombreux utilisateurs se plaignent que les agents cherchent à fermer le ticket (statut "Resolved") pour satisfaire leurs indicateurs de performance (KPIs) plutôt que de résoudre réellement le problème. Cela oblige l'utilisateur à rouvrir des tickets, créant frustration et perte de temps.
+         * Verbatim clé : "Isn't it me to say if issue is resolved and not the person that answer the ticket?"
+         2. Déshumanisation du Support RH :
+         * Pour l'enquête HR Survey, un point de douleur spécifique est le sentiment de recevoir des réponses "robotiques" ou standardisées qui ne prennent pas en compte la complexité de la demande humaine. L'outil de ticketing est perçu comme une barrière plutôt qu'une aide.
+Note Méthodologique :
+         * Score de Confiance : Élevé (~80%) pour les catégories principales car elles contiennent de nombreux verbatims détaillés permettant une analyse précise.
+         * Interprétation : Les notes 1-2 ont été classées comme Négatives, 3 Neutres, et 4-5 Positives. Les commentaires courts ("Good", "Ras") ont été inclus dans les statistiques mais exclus du "Deep Dive" pour privilégier le contexte.
+TEST 3
+🔍 Analyse Approfondie & Insights
+1. Satisfaction Globale Élevée : Les deux catégories principales (GIO et HR) montrent un taux de satisfaction solide autour de 70%. Cela indique que la majorité des processus fonctionnent correctement pour les utilisateurs.
+2. Points de friction "HR Survey" (RH) : Avec 16.3% de négatif, c'est la catégorie majeure la plus critique.
+         * Cause racine : Les mots clés "réponse", "long", et "attente" reviennent fréquemment. Les utilisateurs ne se plaignent pas nécessairement de la réponse elle-même, mais du délai ou de l'absence de retour.
+         * Verbatim clé : "Délai de traitement trop long" (exemple type reconstitué d'après les mots clés).
+3. Points de friction "GIO Survey" (IT/Technique) : Bien que le volume soit le plus élevé, le taux négatif est contenu (7.9%).
+         * Cause racine : Les problèmes semblent liés à la résolution technique ("problème", "solution") plutôt qu'au relationnel pur, bien que des cas d'insatisfaction extrême ("Extremely Dissatisfied") soient notés.
+Recommandation Immédiate : Prioriser une "Deep Dive" sur les 16% de détracteurs RH. Une action simple comme l'envoi d'un accusé de réception automatique avec délai estimé pourrait réduire le sentiment de "vide" exprimé par les utilisateurs.
+Souhaitez-vous que j'exporte cette table au format CSV pour l'intégrer dans vos rapports ?
+
+
+
+
+
+
+[a]@noemie.catry@airliquide.com @nicolas.carrara@airliquide.com Hello, je voudrais m'entrainer sur les données de novembre. Est-ce ce prompt le définitif ? Il me semble complicado et se référer à des choses que je n'ai aps comme le SOP...
+_Assigned to noemie.catry@airliquide.com_
+[b]Hello Sara, pas besoin de tout ça, tu dois juste donner ton fichier d'extract en format excel ou csv au prompt. Si tu veux commencer dit lui juste bonjour et il te guidera
