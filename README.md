@@ -4,6 +4,11 @@
 **Context:** HR Ticket Analysis - Proof of Concept (POC)  
 **File:** `final_sentiment_analysis.ipynb`
 
+### 📥 Download Model
+
+The model file is hosted via GitHub Releases due to its size.
+[**Click here to download the .bin file**](https://github.com/Noemie-catry/sentiment_analysis/releases/download/v1.0/pytorch_model.1.zip)
+
 ---
 
 ## 📋 Overview
